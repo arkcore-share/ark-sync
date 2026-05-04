@@ -213,6 +213,10 @@
                     Device "{%name%}" ({%device%} at {%address%}) wants to connect. Add new device?
                   </span>
                 </p>
+                <p class="text-info" ng-if="pendingDeviceAutoAcceptCountdown[deviceID] > 0">
+                  <span class="fas fa-hourglass-half"></span>&nbsp;
+                  <span translate translate-values="{{ { seconds: pendingDeviceAutoAcceptCountdown[deviceID] } }}">Automatically accepting and saving in {%seconds%} s…</span>
+                </p>
               </div>
               <div class="panel-footer clearfix">
                 <div class="pull-right">
@@ -248,14 +252,18 @@
                 </div>
                 <div class="panel-body">
                   <p>
-                    <span ng-if="offeringDevice.label.length == 0" translate translate-value-device="{{ deviceName(devices[deviceID]) }}" translate-value-folder="{{ folderID }}">
+                    <span ng-if="!offeringDevice.label || offeringDevice.label.length == 0" translate translate-value-device="{{ deviceName(devices[deviceID]) }}" translate-value-folder="{{ folderID }}">
                       {%device%} wants to share folder "{%folder%}".
                     </span>
-                    <span ng-if="offeringDevice.label.length != 0" translate translate-value-device="{{ deviceName(devices[deviceID]) }}" translate-value-folder="{{ folderID }}" translate-value-folderlabel="{{ offeringDevice.label }}">
+                    <span ng-if="offeringDevice.label && offeringDevice.label.length != 0" translate translate-value-device="{{ deviceName(devices[deviceID]) }}" translate-value-folder="{{ folderID }}" translate-value-folderlabel="{{ offeringDevice.label }}">
                       {%device%} wants to share folder "{%folderlabel%}" ({%folder%}).
                     </span>
                     <span translate ng-if="folders[folderID]">Share this folder?</span>
                     <span translate ng-if="!folders[folderID]">Add new folder?</span>
+                  </p>
+                  <p class="text-info" ng-show="!folders[folderID] && pendingFolderSecs(folderID, deviceID) > 0">
+                    <span class="fas fa-hourglass-half"></span>&nbsp;
+                    <span ng-bind="pendingFolderAutoAcceptCaption(folderID, deviceID)"></span>
                   </p>
                 </div>
                 <div class="panel-footer clearfix">

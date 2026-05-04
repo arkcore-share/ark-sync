@@ -47,6 +47,8 @@
     "Automatic upgrade now offers the choice between stable releases and release candidates.": "自动升级现在提供了稳定版本和候选发布版的选项。",
     "Automatic upgrades": "自动升级",
     "Automatic upgrades are always enabled for candidate releases.": "候选版本始终启用自动升级。",
+    "Automatically accepting and saving in {%seconds%} s…": "将在 {{seconds}} 秒后自动接受并保存…",
+    "Automatically accepting folder and saving in {%seconds%} s…": "将在 {{seconds}} 秒后自动添加文件夹、填写路径并保存…",
     "Automatically create or share folders that this device advertises at the default path.": "自动创建或共享此设备在默认路径上显示的文件夹。",
     "Available debug logging facilities:": "可用的调试日志功能：",
     "Be careful!": "小心！",

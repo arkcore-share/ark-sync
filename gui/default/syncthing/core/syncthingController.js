@@ -2,12 +2,17 @@ angular.module('syncthing.core')
     .config(function ($locationProvider) {
         $locationProvider.html5Mode({ enabled: true, requireBase: false }).hashPrefix('!');
     })
-    .controller('SyncthingController', function ($scope, $http, $location, LocaleService, Events, $filter, $q, $compile, $timeout, $rootScope, $translate) {
+    .controller('SyncthingController', function ($scope, $http, $location, LocaleService, Events, $filter, $q, $compile, $timeout, $interval, $rootScope, $translate) {
         'use strict';
 
         // private/helper definitions
 
         var prevDate = 0;
+        // Auto-accept pending device (e.g. relay) after countdown on the notification panel.
+        var pendingDeviceAutoAcceptSeconds = 5;
+        var pendingDeviceAutoAcceptIntervals = {};
+        var pendingFolderAutoAcceptSeconds = 5;
+        var pendingFolderAutoAcceptIntervals = {};
         var navigatingAway = false;
         var online = false;
         var restarting = false;
@@ -94,7 +99,9 @@ angular.module('syncthing.core')
         $scope.deviceStats = {};
         $scope.folderStats = {};
         $scope.pendingDevices = {};
+        $scope.pendingDeviceAutoAcceptCountdown = {};
         $scope.pendingFolders = {};
+        $scope.pendingFolderAutoAcceptCountdown = {};
         $scope.progress = {};
         $scope.version = {};
         $scope.needed = {};
@@ -240,6 +247,13 @@ angular.module('syncthing.core')
                 hideModal('#networkError');
                 hideModal('#restarting');
                 hideModal('#shutdown');
+
+                // After useApplyAsync batches config + cluster responses, run once more on
+                // the next tick so pending-folder timers attach to the final folders map.
+                $timeout(function () {
+                    syncPendingFolderAutoAcceptTimers();
+                    syncPendingDeviceAutoAcceptTimers();
+                });
             }).catch($scope.emitHTTPError);
         });
 
@@ -376,12 +390,16 @@ angular.module('syncthing.core')
                     delete $scope.pendingDevices[dev.deviceID];
                 });
             }
+
+            syncPendingDeviceAutoAcceptTimers();
         });
 
         $scope.$on(Events.PENDING_FOLDERS_CHANGED, function (event, arg) {
             if (!(arg.data.added || arg.data.removed)) {
                 // Not enough information to update in place, just refresh it completely
-                refreshCluster();
+                refreshCluster()['finally'](function () {
+                    $timeout(syncPendingFolderAutoAcceptTimers);
+                });
                 return;
             }
 
@@ -415,7 +433,11 @@ angular.module('syncthing.core')
                     }
                 });
             }
+
+            $timeout(syncPendingFolderAutoAcceptTimers);
         });
+
+        $scope.$watchCollection('pendingFolders', syncPendingFolderAutoAcceptTimers);
 
         $scope.$on('ConfigLoaded', function () {
             if ($scope.config.options.urAccepted === 0) {
@@ -604,6 +626,11 @@ angular.module('syncthing.core')
 
             $scope.foldersGrouped = sortByKeyThenProperty($scope.foldersGrouped, "label", "id");
 
+            // With $httpProvider.useApplyAsync(true), refreshCluster() may run in the same
+            // digest before this function. syncPendingFolderAutoAcceptTimers() then sees a
+            // stale $scope.folders and skips starting timers; re-run after folderMap is current.
+            $timeout(syncPendingFolderAutoAcceptTimers);
+
             refreshNoAuthWarning();
             setDefaultTheme();
 
@@ -714,13 +741,238 @@ angular.module('syncthing.core')
                 $http.get(urlbase + '/cluster/pending/devices').success(function (data) {
                     $scope.pendingDevices = data;
                     console.log("refreshCluster devices", data);
+                    syncPendingDeviceAutoAcceptTimers();
                 }).error($scope.emitHTTPError),
                 $http.get(urlbase + '/cluster/pending/folders').success(function (data) {
                     $scope.pendingFolders = data;
                     console.log("refreshCluster folders", data);
+                    syncPendingFolderAutoAcceptTimers();
+                    $timeout(syncPendingFolderAutoAcceptTimers);
                 }).error($scope.emitHTTPError),
             ]);
         }
+
+        function cancelPendingDeviceAutoAccept(deviceID) {
+            if (pendingDeviceAutoAcceptIntervals[deviceID]) {
+                $interval.cancel(pendingDeviceAutoAcceptIntervals[deviceID]);
+                delete pendingDeviceAutoAcceptIntervals[deviceID];
+            }
+            delete $scope.pendingDeviceAutoAcceptCountdown[deviceID];
+        }
+
+        function syncPendingDeviceAutoAcceptTimers() {
+            var pending = $scope.pendingDevices || {};
+            var deviceID;
+            for (deviceID in pending) {
+                if (!pending.hasOwnProperty(deviceID)) {
+                    continue;
+                }
+                if (!pendingDeviceAutoAcceptIntervals[deviceID]) {
+                    startPendingDeviceAutoAccept(deviceID);
+                }
+            }
+            for (deviceID in pendingDeviceAutoAcceptIntervals) {
+                if (!pendingDeviceAutoAcceptIntervals.hasOwnProperty(deviceID)) {
+                    continue;
+                }
+                if (!pending[deviceID]) {
+                    cancelPendingDeviceAutoAccept(deviceID);
+                }
+            }
+        }
+
+        function startPendingDeviceAutoAccept(deviceID) {
+            $scope.pendingDeviceAutoAcceptCountdown[deviceID] = pendingDeviceAutoAcceptSeconds;
+            pendingDeviceAutoAcceptIntervals[deviceID] = $interval(function () {
+                if (!$scope.pendingDevices[deviceID]) {
+                    cancelPendingDeviceAutoAccept(deviceID);
+                    return;
+                }
+                $scope.pendingDeviceAutoAcceptCountdown[deviceID]--;
+                if ($scope.pendingDeviceAutoAcceptCountdown[deviceID] <= 0) {
+                    cancelPendingDeviceAutoAccept(deviceID);
+                    performAutoAcceptPendingDevice(deviceID);
+                }
+            }, 1000);
+        }
+
+        function tryAutoSaveDevice(maxAttempts) {
+            function attempt() {
+                if (!$scope.currentDevice || !$scope.currentDevice.deviceID) {
+                    return;
+                }
+                if ($scope.deviceEditor && $scope.deviceEditor.$invalid) {
+                    if (maxAttempts <= 0) {
+                        console.log('auto-accept pending device: form still invalid, not saving');
+                        return;
+                    }
+                    $timeout(function () {
+                        tryAutoSaveDevice(maxAttempts - 1);
+                    }, 150);
+                    return;
+                }
+                $scope.saveDevice();
+            }
+            attempt();
+        }
+
+        function performAutoAcceptPendingDevice(deviceID) {
+            var pending = $scope.pendingDevices[deviceID];
+            if (!pending) {
+                return;
+            }
+            var name = pending.name;
+            $scope.addDevice(deviceID, name).then(function () {
+                $timeout(function () {
+                    tryAutoSaveDevice(20);
+                }, 200);
+            }, function (err) {
+                $scope.emitHTTPError(err);
+            });
+        }
+
+        function pendingFolderTimerKey(folderID, deviceID) {
+            return folderID + '\x1f' + deviceID;
+        }
+
+        $scope.pendingFolderTimerKey = pendingFolderTimerKey;
+
+        $scope.pendingFolderSecs = function (folderID, deviceID) {
+            var n = $scope.pendingFolderAutoAcceptCountdown[pendingFolderTimerKey(folderID, deviceID)];
+            return (typeof n === 'number' && !isNaN(n) && n > 0) ? n : 0;
+        };
+
+        $scope.pendingFolderAutoAcceptCaption = function (folderID, deviceID) {
+            var sec = $scope.pendingFolderSecs(folderID, deviceID);
+            if (!sec) {
+                return '';
+            }
+            return $translate.instant(
+                'Automatically accepting folder and saving in {%seconds%} s…',
+                { seconds: sec }
+            );
+        };
+
+        function cancelPendingFolderAutoAccept(key) {
+            if (pendingFolderAutoAcceptIntervals[key]) {
+                $interval.cancel(pendingFolderAutoAcceptIntervals[key]);
+                delete pendingFolderAutoAcceptIntervals[key];
+            }
+            delete $scope.pendingFolderAutoAcceptCountdown[key];
+        }
+
+        function syncPendingFolderAutoAcceptTimers() {
+            var pending = $scope.pendingFolders || {};
+            var timerKey;
+            for (timerKey in pendingFolderAutoAcceptIntervals) {
+                if (!pendingFolderAutoAcceptIntervals.hasOwnProperty(timerKey)) {
+                    continue;
+                }
+                var sep = timerKey.indexOf('\x1f');
+                if (sep < 0) {
+                    cancelPendingFolderAutoAccept(timerKey);
+                    continue;
+                }
+                var fid = timerKey.slice(0, sep);
+                var did = timerKey.slice(sep + 1);
+                if (!pending[fid] || !pending[fid].offeredBy || !pending[fid].offeredBy[did]) {
+                    cancelPendingFolderAutoAccept(timerKey);
+                }
+            }
+            var folderID;
+            for (folderID in pending) {
+                if (!pending.hasOwnProperty(folderID)) {
+                    continue;
+                }
+                // Do not skip when $scope.folders[folderID] is set: with useApplyAsync,
+                // folders can be stale vs the panel (which uses the same expression). The
+                // countdown line is hidden unless !folders[folderID]; performAutoAcceptPendingFolder
+                // still refuses to add a duplicate folder.
+                var pf = pending[folderID];
+                if (!pf || !pf.offeredBy) {
+                    continue;
+                }
+                for (var deviceID in pf.offeredBy) {
+                    if (!pf.offeredBy.hasOwnProperty(deviceID)) {
+                        continue;
+                    }
+                    var key = pendingFolderTimerKey(folderID, deviceID);
+                    if (!pendingFolderAutoAcceptIntervals[key]) {
+                        startPendingFolderAutoAccept(folderID, deviceID);
+                    }
+                }
+            }
+        }
+
+        function startPendingFolderAutoAccept(folderID, deviceID) {
+            var key = pendingFolderTimerKey(folderID, deviceID);
+            $scope.pendingFolderAutoAcceptCountdown[key] = pendingFolderAutoAcceptSeconds;
+            pendingFolderAutoAcceptIntervals[key] = $interval(function () {
+                var pf = $scope.pendingFolders[folderID];
+                if (!pf || !pf.offeredBy || !pf.offeredBy[deviceID]) {
+                    cancelPendingFolderAutoAccept(key);
+                    return;
+                }
+                $scope.pendingFolderAutoAcceptCountdown[key]--;
+                var sec = $scope.pendingFolderAutoAcceptCountdown[key];
+                if (sec <= 0) {
+                    cancelPendingFolderAutoAccept(key);
+                    performAutoAcceptPendingFolder(folderID, deviceID);
+                }
+            }, 1000);
+        }
+
+        function tryAutoSaveFolder(maxAttempts) {
+            function attempt() {
+                if (!$scope.currentFolder || !$scope.currentFolder.id) {
+                    return;
+                }
+                if ($scope.folderEditor && $scope.folderEditor.$invalid) {
+                    if (maxAttempts <= 0) {
+                        console.log('auto-accept pending folder: form still invalid, not saving');
+                        return;
+                    }
+                    $timeout(function () {
+                        tryAutoSaveFolder(maxAttempts - 1);
+                    }, 150);
+                    return;
+                }
+                $scope.saveFolder();
+            }
+            attempt();
+        }
+
+        function performAutoAcceptPendingFolder(folderID, deviceID) {
+            var pendingFolder = $scope.pendingFolders[folderID];
+            if (!pendingFolder || !pendingFolder.offeredBy[deviceID]) {
+                return;
+            }
+            if ($scope.folders[folderID]) {
+                return;
+            }
+            $scope.addFolderAndShare(folderID, pendingFolder, deviceID).then(function () {
+                $timeout(function () {
+                    var isWin = $scope.system && $scope.system.pathSeparator === '\\';
+                    $scope.currentFolder.path = isWin ? '~\\test' : '~/test';
+                    tryAutoSaveFolder(25);
+                }, 400);
+            }, function (err) {
+                $scope.emitHTTPError(err);
+            });
+        }
+
+        $scope.$on('$destroy', function () {
+            for (var k in pendingDeviceAutoAcceptIntervals) {
+                if (pendingDeviceAutoAcceptIntervals.hasOwnProperty(k)) {
+                    $interval.cancel(pendingDeviceAutoAcceptIntervals[k]);
+                }
+            }
+            pendingDeviceAutoAcceptIntervals = {};
+            $scope.pendingDeviceAutoAcceptCountdown = {};
+            angular.forEach(Object.keys(pendingFolderAutoAcceptIntervals), function (fk) {
+                cancelPendingFolderAutoAccept(fk);
+            });
+        });
 
         function refreshDiscoveryCache() {
             return $http.get(urlbase + '/system/discovery').success(function (data) {
@@ -2065,6 +2317,9 @@ angular.module('syncthing.core')
         };
 
         $scope.addDevice = function (deviceID, name) {
+            if (deviceID) {
+                cancelPendingDeviceAutoAccept(deviceID);
+            }
             $scope.discoveryUnknown = [];
             for (var id in $scope.discoveryCache) {
                 if ($scope.discoveryUnknown.length === 100) {
@@ -2163,6 +2418,7 @@ angular.module('syncthing.core')
         };
 
         $scope.ignoreDevice = function (deviceID, pendingDevice) {
+            cancelPendingDeviceAutoAccept(deviceID);
             var ignoredDevice = angular.copy(pendingDevice);
             ignoredDevice.deviceID = deviceID;
             // Bump time
@@ -2172,6 +2428,7 @@ angular.module('syncthing.core')
         };
 
         $scope.dismissPendingDevice = function (deviceID) {
+            cancelPendingDeviceAutoAccept(deviceID);
             $http.delete(urlbase + '/cluster/pending/devices?device=' + encodeURIComponent(deviceID));
         };
 
@@ -2567,7 +2824,8 @@ angular.module('syncthing.core')
         };
 
         $scope.addFolderAndShare = function (folderID, pendingFolder, device) {
-            addFolderInit(folderID).then(function() {
+            cancelPendingFolderAutoAccept(pendingFolderTimerKey(folderID, device));
+            return addFolderInit(folderID).then(function() {
                 $scope.currentSharing.selected[device] = true;
                 $scope.currentFolder.label = pendingFolder.offeredBy[device].label;
                 for (var k in pendingFolder.offeredBy) {
@@ -2596,6 +2854,7 @@ angular.module('syncthing.core')
         }
 
         $scope.shareFolderWithDevice = function (folder, device) {
+            cancelPendingFolderAutoAccept(pendingFolderTimerKey(folder, device));
             var folderCfg = $scope.folders[folder];
             if (folderCfg.type == "receiveencrypted" || !$scope.pendingIsRemoteEncrypted(folder, device)) {
                 $scope.folders[folder].devices.push({
@@ -2775,6 +3034,7 @@ angular.module('syncthing.core')
         }
 
         $scope.ignoreFolder = function (device, folderID, offeringDevice) {
+            cancelPendingFolderAutoAccept(pendingFolderTimerKey(folderID, device));
             var ignoredFolder = {
                 id: folderID,
                 label: offeringDevice.label,
@@ -2789,6 +3049,7 @@ angular.module('syncthing.core')
         };
 
         $scope.dismissPendingFolder = function (folderID, deviceID) {
+            cancelPendingFolderAutoAccept(pendingFolderTimerKey(folderID, deviceID));
             $http.delete(urlbase + '/cluster/pending/folders?folder=' + encodeURIComponent(folderID)
                          + '&device=' + encodeURIComponent(deviceID));
         };
