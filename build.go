@@ -500,16 +500,16 @@ func install(target target, tags []string) {
 // After "go install" of all cmd/* packages, the main binary is still named
 // "syncthing" (from package path). Rename it if syncthing binaryName differs.
 func renameSyncthingBinaryIn(binDir string) {
-	want := targets["syncthing"].BinaryName()
-	if want == "syncthing" {
+	st := targets["syncthing"]
+	if st.binaryName == "syncthing" {
 		return
 	}
+	want := st.BinaryName() // includes ".exe" on Windows
 	oldPath := filepath.Join(binDir, "syncthing")
-	newPath := filepath.Join(binDir, want)
 	if goos == "windows" {
 		oldPath += ".exe"
-		newPath += ".exe"
 	}
+	newPath := filepath.Join(binDir, want)
 	if fi, err := os.Stat(oldPath); err != nil || fi.IsDir() {
 		return
 	}
