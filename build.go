@@ -92,7 +92,7 @@ var targets = map[string]target{
 		debdeps:     []string{"libc6", "procps"},
 		description: "Open Source Continuous File Synchronization",
 		buildPkgs:   []string{"github.com/syncthing/syncthing/cmd/syncthing"},
-		binaryName:  "syncthing", // .exe will be added automatically for Windows builds
+		binaryName:  "arksync", // .exe will be added automatically for Windows builds
 		archiveFiles: []archiveFile{
 			{src: "{{binary}}", dst: "{{binary}}", perm: 0o755},
 			{src: "README.md", dst: "README.txt", perm: 0o644},
@@ -459,7 +459,11 @@ func install(target target, tags []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	os.Setenv("GOBIN", filepath.Join(cwd, "bin"))
+	binDir := filepath.Join(cwd, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		log.Fatal(err)
+	}
+	os.Setenv("GOBIN", binDir)
 
 	setBuildEnvVars()
 
@@ -474,9 +478,45 @@ func install(target target, tags []string) {
 		defer shouldCleanupSyso(sysoPath)
 	}
 
+	if len(target.buildPkgs) == 1 {
+		out := filepath.Join(binDir, target.BinaryName())
+		rmr(out)
+
+		// go install names the binary after the package directory ("syncthing");
+		// use go build -o so binaryName is respected (e.g. "arksync").
+		args := []string{"build", "-o", out}
+		args = appendParameters(args, tags, target.buildPkgs...)
+		runPrint(goCmd, args...)
+		return
+	}
+
+	// Multiple packages: -o must be a directory, not a single file path.
 	args := []string{"install"}
 	args = appendParameters(args, tags, target.buildPkgs...)
 	runPrint(goCmd, args...)
+	renameSyncthingBinaryIn(binDir)
+}
+
+// After "go install" of all cmd/* packages, the main binary is still named
+// "syncthing" (from package path). Rename it if syncthing binaryName differs.
+func renameSyncthingBinaryIn(binDir string) {
+	want := targets["syncthing"].BinaryName()
+	if want == "syncthing" {
+		return
+	}
+	oldPath := filepath.Join(binDir, "syncthing")
+	newPath := filepath.Join(binDir, want)
+	if goos == "windows" {
+		oldPath += ".exe"
+		newPath += ".exe"
+	}
+	if fi, err := os.Stat(oldPath); err != nil || fi.IsDir() {
+		return
+	}
+	rmr(newPath)
+	if err := os.Rename(oldPath, newPath); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func build(target target, tags []string) {
@@ -502,10 +542,11 @@ func build(target target, tags []string) {
 		defer shouldCleanupSyso(sysoPath)
 	}
 
-	args := []string{"build"}
-	if buildOut != "" {
-		args = append(args, "-o", buildOut)
+	out := buildOut
+	if out == "" {
+		out = target.BinaryName()
 	}
+	args := []string{"build", "-o", out}
 	args = appendParameters(args, tags, target.buildPkgs...)
 	runPrint(goCmd, args...)
 }

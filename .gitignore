@@ -21,3 +21,6 @@ deb
 
 # IDE
 .idea/
+
+arksync
+/*.exe
