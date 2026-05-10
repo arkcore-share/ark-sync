@@ -5,8 +5,10 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // Package parentcheck exits the process unless the immediate parent executable
-// is the expected ArkSync client (arksync_client.exe on Windows, arksync_client elsewhere),
-// or the same resolved path as this binary (monitor respawning the inner process).
+// is the expected ArkSync client (arksync_client.exe on Windows, arksync_client
+// elsewhere), an Electron host (electron.exe on Windows, electron elsewhere)
+// running the client, or the same resolved path as this binary (monitor
+// respawning the inner process).
 //
 // Set ARKSYNC_SKIP_PARENT_CHECK=1 to disable (tests, CI, or service wrappers).
 // Set ARKSYNC_DEBUG_PARENT=1 to print parent PID, inferred parent image base name,
@@ -29,7 +31,7 @@ const skipEnv = "ARKSYNC_SKIP_PARENT_CHECK"
 
 // ErrWrongParent indicates the parent process did not match the required client
 // (or the same executable for the monitor/inner-process chain).
-var ErrWrongParent = errors.New("parent process must be arksync_client (arksync_client.exe on Windows), or the same arksync executable respawned by the monitor")
+var ErrWrongParent = errors.New("parent process must be arksync_client (arksync_client.exe on Windows), electron (electron.exe on Windows), or the same arksync executable respawned by the monitor")
 
 // CheckParentProcess returns nil if the parent is the approved launcher, or if
 // checks are skipped via ARKSYNC_SKIP_PARENT_CHECK=1.
@@ -61,7 +63,7 @@ func CheckParentProcess() error {
 	}
 
 	if isApprovedParentBase(base) {
-		debugParent(base, "allowed: parent matches arksync_client")
+		debugParent(base, "allowed: parent matches approved launcher")
 		return nil
 	}
 	// Monitor respawns the same binary for the inner process only (child has
@@ -103,9 +105,18 @@ func isApprovedParentBase(base string) bool {
 	b := strings.ToLower(filepath.Base(strings.TrimSpace(base)))
 	if build.IsWindows {
 		// Some APIs report the image name without ".exe".
-		return b == "arksync_client.exe" || b == "arksync_client"
+		switch b {
+		case "arksync_client.exe", "arksync_client",
+			"electron.exe", "electron":
+			return true
+		}
+		return false
 	}
-	return b == "arksync_client"
+	switch b {
+	case "arksync_client", "electron":
+		return true
+	}
+	return false
 }
 
 func debugParent(parentBase, outcome string) {
