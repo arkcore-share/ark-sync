@@ -32,6 +32,7 @@ func TestCLIReset(t *testing.T) {
 	// Run reset to clean up
 
 	cmd := exec.Command("../bin/syncthing", "--no-browser", "--home", "h1", "--reset-database")
+	cmd.Env = append(os.Environ(), "ARKSYNC_SKIP_PARENT_CHECK=1")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stdout
 	err := cmd.Run()
@@ -66,6 +67,7 @@ func TestCLIGenerate(t *testing.T) {
 	// --generate should create a bunch of stuff
 
 	cmd := exec.Command("../bin/syncthing", "--no-browser", "--generate", "home.out")
+	cmd.Env = append(os.Environ(), "ARKSYNC_SKIP_PARENT_CHECK=1")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stdout
 	err = cmd.Run()
@@ -92,7 +94,7 @@ func TestCLIFirstStartup(t *testing.T) {
 	// First startup should create config, BEP certificate, and HTTP certificate.
 
 	cmd := exec.Command("../bin/syncthing", "--no-browser", "--home", "home.out")
-	cmd.Env = append(os.Environ(), "STNORESTART=1")
+	cmd.Env = append(os.Environ(), "STNORESTART=1", "ARKSYNC_SKIP_PARENT_CHECK=1")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stdout
 	err = cmd.Start()

@@ -100,7 +100,7 @@ func (p *Process) Start(bin string, args ...string) error {
 		cmd.Stdout = p.logfd
 		cmd.Stderr = p.logfd
 	}
-	cmd.Env = append(os.Environ(), "STNORESTART=1", "STGUIAPIKEY="+APIKey)
+	cmd.Env = append(os.Environ(), "STNORESTART=1", "STGUIAPIKEY="+APIKey, "ARKSYNC_SKIP_PARENT_CHECK=1")
 
 	err := cmd.Start()
 	if err != nil {
