@@ -40,7 +40,7 @@ import (
 var (
 	goarch        string
 	goos          string
-	noupgrade     bool
+	noupgrade     bool = true
 	version       string
 	goCmd         string
 	race          bool

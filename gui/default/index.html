@@ -289,7 +289,7 @@
             </div>
             <div class="panel-body">
               <p>
-                <span translate>For the following folders an error occurred while starting to watch for changes. It will be retried every minute, so the errors might go away soon. If they persist, try to fix the underlying issue and ask for help if you can't.</span>&emsp;<a href="https://forum.syncthing.net" target="_blank"><span class="fas fa-question-circle"></span>&nbsp;<span translate>Support</span></a>
+                <span translate>For the following folders an error occurred while starting to watch for changes. It will be retried every minute, so the errors might go away soon. If they persist, try to fix the underlying issue and ask for help if you can't.</span>&emsp;<a href="https://arkcore.cloud/contact" target="_blank"><span class="fas fa-question-circle"></span>&nbsp;<span translate>Support</span></a>
               </p>
               <table>
                 <tr ng-repeat="(id, err) in fsWatcherErrorMap()">
@@ -361,14 +361,14 @@
                     <span class="fa fa-fw fa-question-circle"></span>&nbsp;<span translate>Help</span>
                   </a>
                   <ul class="dropdown-menu" ng-show="personalHelpOpen" ng-click="$event.stopPropagation();">
-                    <li><a class="navbar-link" href="{{docsURL('intro/gui')}}" target="_blank"><span class="fa fa-fw fa-info-circle"></span>&nbsp;<span translate>Introduction</span></a></li>
-                    <li><a class="navbar-link" href="https://syncthing.net/" target="_blank"><span class="fa fa-fw fa-home"></span>&nbsp;<span translate>Home page</span></a></li>
-                    <li><a class="navbar-link" href="{{docsURL()}}" target="_blank"><span class="fa fa-fw fa-book"></span>&nbsp;<span translate>Documentation</span></a></li>
-                    <li><a class="navbar-link" href="https://forum.syncthing.net" target="_blank"><span class="fa fa-fw fa-users"></span>&nbsp;<span translate>Support</span></a></li>
-                    <li><a class="navbar-link" href="https://github.com/syncthing/syncthing/releases" target="_blank"><span class="fa fa-fw fa-file-text"></span>&nbsp;<span translate>Changelog</span></a></li>
-                    <li><a class="navbar-link" href="https://data.syncthing.net/" target="_blank"><span class="fa fa-fw fa-bar-chart"></span>&nbsp;<span translate>Statistics</span></a></li>
-                    <li><a class="navbar-link" href="https://github.com/syncthing/syncthing/issues" target="_blank"><span class="fa fa-fw fa-bug"></span>&nbsp;<span translate>Bugs</span></a></li>
-                    <li><a class="navbar-link" href="https://github.com/syncthing/syncthing" target="_blank"><span class="fa fa-fw fa-file-code-o"></span>&nbsp;<span translate>Source Code</span></a></li>
+                    <li><a class="navbar-link" href="https://github.com/arkcore-share/ark-sync-app/blob/main/README.md" target="_blank"><span class="fa fa-fw fa-info-circle"></span>&nbsp;<span translate>Introduction</span></a></li>
+                    <li><a class="navbar-link" href="https://arkcore.cloud/ark-sync" target="_blank"><span class="fa fa-fw fa-home"></span>&nbsp;<span translate>Home page</span></a></li>
+                    <li><a class="navbar-link" href="https://arkcore.cloud/docs" target="_blank"><span class="fa fa-fw fa-book"></span>&nbsp;<span translate>Documentation</span></a></li>
+                    <li><a class="navbar-link" href="https://arkcore.cloud/contact" target="_blank"><span class="fa fa-fw fa-users"></span>&nbsp;<span translate>Support</span></a></li>
+                    <li><a class="navbar-link" href="https://github.com/arkcore-share/ark-sync-app/releases" target="_blank"><span class="fa fa-fw fa-file-text"></span>&nbsp;<span translate>Changelog</span></a></li>
+                    <li><a class="navbar-link" href="https://github.com/arkcore-share/ark-sync-app/pulse" target="_blank"><span class="fa fa-fw fa-bar-chart"></span>&nbsp;<span translate>Statistics</span></a></li>
+                    <li><a class="navbar-link" href="https://github.com/arkcore-share/ark-sync-app/issues" target="_blank"><span class="fa fa-fw fa-bug"></span>&nbsp;<span translate>Bugs</span></a></li>
+                    <li><a class="navbar-link" href="https://github.com/arkcore-share/ark-sync-app" target="_blank"><span class="fa fa-fw fa-file-code-o"></span>&nbsp;<span translate>Source Code</span></a></li>
                     <li><a href="" ng-click="about.show()"><span class="fa fa-fw fa-heart"></span>&nbsp;<span translate>About</span></a></li>
                   </ul>
                 </li>

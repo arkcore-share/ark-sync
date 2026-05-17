@@ -3693,7 +3693,7 @@ angular.module('syncthing.core')
         };
 
         $scope.docsURL = function (path) {
-            var url = 'https://docs.syncthing.net';
+            var url = 'https://arkcore.cloud/docs';
             if (!$scope.versionBase()) {
                 return url;
             }
