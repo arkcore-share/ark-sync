@@ -2,11 +2,11 @@
   <div class="modal-body" ng-switch="connectivityStatusParams.type">
     <div ng-switch-when="listeners">
       <p translate ng-if="listenersRunning.length == 0">
-        Syncthing is not listening for connection attempts from other devices on any address.  Only outgoing connections from this device may work.
+        Ark Sync is not listening for connection attempts from other devices on any address.  Only outgoing connections from this device may work.
       </p>
       <div ng-if="listenersRunning.length > 0">
         <p translate>
-          Syncthing is listening on the following network addresses for connection attempts from other devices:
+          Ark Sync is listening on the following network addresses for connection attempts from other devices:
         </p>
         <ul>
           <li ng-repeat="listener in listenersRunning">{{listener}}</li>

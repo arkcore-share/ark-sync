@@ -138,6 +138,7 @@ angular.module('syncthing.core')
             staggeredMaxAge: 365,
             externalCommand: "",
         };
+        $scope.activeOverviewSection = 'thisDevice';
 
         $scope.localStateTotal = {
             bytes: 0,
@@ -3818,7 +3819,7 @@ angular.module('syncthing.core')
 
             // Title and footer can be reused between different sharing
             // methods, hence we define them separately before the body.
-            var title = $translate.instant('Syncthing device ID for "{%devicename%}"', {devicename: deviceName});
+            var title = $translate.instant('Ark Sync device ID for "{%devicename%}"', {devicename: deviceName});
             var footer = $translate.instant("Learn more at {%url%}", {url: "https://syncthing.net"});
 
             switch (method) {
@@ -3829,9 +3830,9 @@ angular.module('syncthing.core')
                     // Ref: https://datatracker.ietf.org/doc/html/rfc5322
                     params.subject = title;
                     params.body = [
-                        $translate.instant('To connect with the Syncthing device named "{%devicename%}", add a new remote device on your end with this ID:', {devicename: deviceName}),
+                        $translate.instant('To connect with the Ark Sync device named "{%devicename%}", add a new remote device on your end with this ID:', {devicename: deviceName}),
                         deviceID,
-                        $translate.instant("Syncthing is a continuous file synchronization program. It synchronizes files between two or more computers in real time, safely protected from prying eyes. Your data is your data alone and you deserve to choose where it is stored, whether it is shared with some third party, and how it's transmitted over the internet."),
+                        $translate.instant("Ark Sync is a continuous file synchronization program. It synchronizes files between two or more computers in real time, safely protected from prying eyes. Your data is your data alone and you deserve to choose where it is stored, whether it is shared with some third party, and how it's transmitted over the internet."),
                         footer
                     ].join('\r\n\r\n');
                     break;

@@ -1,5 +1,5 @@
 /*
-// Copyright (C) 2014 The Syncthing Authors.
+// Copyright (C) 2014 The Ark Sync Authors.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -9,7 +9,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 h1, h2, h3, h4, h5 {
@@ -22,7 +22,7 @@ ul+h5 {
 }
 
 .content {
-    margin-bottom: 50px;
+    margin-bottom: 0;
 }
 
 .panel-progress {
@@ -552,4 +552,756 @@ html[lang|="ko"] i {
 .select-on-click {
     -webkit-user-select: all;
     user-select: all;
+}
+
+/* ArkSync cohesive dark style override (content unchanged) */
+body {
+    background: #07101d;
+    color: #d8e6fb;
+}
+
+.navbar.navbar-top {
+    background: #0c1626;
+    border-color: #1f324c;
+}
+
+.navbar-default .navbar-nav > li > a,
+.navbar-default .navbar-text,
+.navbar-default .navbar-brand {
+    color: #d6e4fb;
+}
+
+.container.content {
+    width: 100%;
+    max-width: 100%;
+    min-height: calc(100vh - 70px);
+}
+
+/* Unified work area: sidebar + content feel like one layout */
+div.row[ng-if="authenticated"] {
+    display: flex;
+    align-items: stretch;
+}
+
+div.row[ng-if="authenticated"] > .col-md-3.col-lg-2 {
+    width: 320px;
+    padding-left: 0;
+    padding-right: 0;
+    display: flex;
+    align-self: stretch;
+}
+
+div.row[ng-if="authenticated"] > .col-md-9.col-lg-10 {
+    width: calc(100% - 320px);
+    padding-left: 28px;
+    padding-right: 18px;
+}
+
+/* Sidebar shell */
+.col-md-3.col-lg-2 .panel.panel-default {
+    background: #18263b;
+    border-color: #2a3f5f;
+    border-radius: 0;
+    min-height: calc(100vh - 72px) !important;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+    box-shadow: none;
+}
+
+.col-md-3.col-lg-2 .panel-heading {
+    background: #1c2d46;
+    border-bottom-color: #2a3f5f;
+    color: #f2f7ff;
+    padding: 16px 18px;
+    font-size: 18px;
+}
+
+.col-md-3.col-lg-2 .list-group {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.col-md-3.col-lg-2 .list-group-item {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: #a8bddf;
+    font-size: 38px;
+    line-height: 1.35;
+    padding: 14px 18px;
+}
+
+.col-md-3.col-lg-2 .list-group-item:hover,
+.col-md-3.col-lg-2 .list-group-item:focus {
+    background: #223753;
+    color: #e5f1ff;
+}
+
+.col-md-3.col-lg-2 .list-group-item.active,
+.col-md-3.col-lg-2 .list-group-item.active:hover,
+.col-md-3.col-lg-2 .list-group-item.active:focus {
+    background: #168fdd;
+    color: #ffffff;
+}
+
+/* Main cards */
+.panel.panel-default {
+    background: #14253c;
+    border-color: #2c4468;
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.panel-default > .panel-heading,
+button.panel-heading {
+    background: #253a58;
+    border-color: #2c4468;
+    color: #f2f7ff;
+}
+
+.panel-title,
+.panel-title-text,
+h3,
+h4 {
+    color: #f2f7ff;
+}
+
+.panel-body,
+.panel-footer {
+    background: #14253c;
+    border-color: #2a3f5f;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #192d47;
+}
+
+.table-striped > tbody > tr:nth-of-type(even) {
+    background-color: #15283f;
+}
+
+.table > tbody > tr > td,
+.table > tbody > tr > th {
+    color: #d6e4fb;
+}
+
+a,
+a:hover,
+a:focus,
+.text-right a {
+    color: #19a0ef;
+}
+
+/* Buttons */
+.btn-default {
+    background: #243a59;
+    border-color: #3a5b86;
+    color: #e7f1ff;
+}
+
+.btn-default:hover,
+.btn-default:focus {
+    background: #2e4a70;
+    border-color: #4a6d9c;
+    color: #ffffff;
+}
+
+.btn-primary {
+    background: #1695e8;
+    border-color: #1695e8;
+    color: #ffffff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: #0f85cf;
+    border-color: #0f85cf;
+}
+
+hr {
+    border-top-color: #2a3f5f;
+}
+
+@media (max-width: 991px) {
+    div.row[ng-if="authenticated"] {
+        display: block;
+    }
+
+    div.row[ng-if="authenticated"] > .col-md-3.col-lg-2,
+    div.row[ng-if="authenticated"] > .col-md-9.col-lg-10 {
+        width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    div.row[ng-if="authenticated"] > .col-md-9.col-lg-10 {
+        margin-top: 12px;
+    }
+}
+
+/* ArkSync strict blue palette: remove remaining gray tones */
+:root {
+  --ark-bg-0: #06101d;
+  --ark-bg-1: #0d1a2d;
+  --ark-bg-2: #14243d;
+  --ark-bg-3: #1b2f4d;
+  --ark-line: #2b4468;
+  --ark-text: #d7e7ff;
+  --ark-text-dim: #9fb8dc;
+  --ark-accent: #1496e8;
+}
+
+html, body,
+.modal-content,
+.dropdown-menu,
+.well,
+.popover,
+.tooltip-inner {
+  background-color: var(--ark-bg-0);
+  color: var(--ark-text);
+}
+
+.panel,
+.panel-default,
+.panel-body,
+.panel-footer,
+.panel-heading,
+.navbar,
+.navbar-default,
+.list-group-item,
+.table,
+.table-striped > tbody > tr:nth-of-type(odd),
+.table-striped > tbody > tr:nth-of-type(even),
+.table-hover > tbody > tr:hover,
+.form-control,
+.input-group-addon,
+.btn,
+.btn-default,
+.btn-primary,
+.btn-danger,
+.btn-success,
+.btn-warning,
+.dropdown-menu > li > a {
+  background-image: none !important;
+}
+
+.panel,
+.panel-default,
+.panel-body,
+.panel-footer,
+.panel-heading,
+.list-group-item,
+.form-control,
+.input-group-addon,
+.btn-default,
+.dropdown-menu,
+.modal-content {
+  background-color: var(--ark-bg-2) !important;
+  border-color: var(--ark-line) !important;
+  color: var(--ark-text) !important;
+}
+
+.navbar,
+.navbar-default,
+.navbar.navbar-top {
+  background-color: var(--ark-bg-1) !important;
+  border-color: var(--ark-line) !important;
+}
+
+.navbar-default .navbar-nav > li > a,
+.navbar-default .navbar-brand,
+.navbar-default .navbar-text,
+.dropdown-menu > li > a,
+.table > thead > tr > th,
+.table > tbody > tr > th,
+.table > tbody > tr > td,
+label,
+h1,h2,h3,h4,h5,h6,
+.help-block,
+small,
+.text-muted {
+  color: var(--ark-text) !important;
+}
+
+.text-muted {
+  opacity: .75;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: #172a45 !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(even) {
+  background-color: #11223a !important;
+}
+
+.list-group-item:hover,
+.list-group-item:focus,
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus,
+.btn-default:hover,
+.btn-default:focus {
+  background-color: var(--ark-bg-3) !important;
+  color: #eef6ff !important;
+}
+
+.list-group-item.active,
+.list-group-item.active:hover,
+.list-group-item.active:focus,
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-success,
+.btn-success:hover,
+.btn-success:focus,
+.btn-danger,
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-warning,
+.btn-warning:hover,
+.btn-warning:focus {
+  background-color: var(--ark-accent) !important;
+  border-color: var(--ark-accent) !important;
+  color: #fff !important;
+}
+
+a, a:hover, a:focus,
+.text-right a,
+.panel a {
+  color: #11a2f5 !important;
+}
+
+hr,
+.panel-default > .panel-heading + .panel-collapse > .panel-body,
+.panel-footer,
+.modal-header,
+.modal-footer,
+.dropdown-menu .divider {
+  border-color: var(--ark-line) !important;
+  background-color: transparent !important;
+}
+
+.form-control::placeholder {
+  color: var(--ark-text-dim) !important;
+}
+
+.form-control:focus {
+  border-color: #3e6da3 !important;
+  box-shadow: 0 0 0 2px rgba(20,150,232,.18) !important;
+}
+
+/* remove legacy gray disabled look */
+.form-control[disabled],
+.form-control[readonly],
+fieldset[disabled] .form-control,
+.checkbox[disabled],
+.form-control option[disabled] {
+  background-color: #1a2d49 !important;
+  color: var(--ark-text-dim) !important;
+  opacity: 1 !important;
+}
+
+/* Force deep-blue page background and avoid gray fallback */
+html, body, .ng-cloak, .container.content {
+  background-color: #06101d !important;
+}
+
+/* Final proportion tuning: make sidebar/content scale harmonious */
+:root {
+  --ark-sidebar-w: 250px;
+}
+
+div.row[ng-if="authenticated"] {
+  align-items: stretch;
+}
+
+div.row[ng-if="authenticated"] > .col-md-3.col-lg-2 {
+  width: var(--ark-sidebar-w) !important;
+  flex: 0 0 var(--ark-sidebar-w);
+}
+
+div.row[ng-if="authenticated"] > .col-md-9.col-lg-10 {
+  width: calc(100% - var(--ark-sidebar-w)) !important;
+  flex: 1 1 auto;
+  padding-left: 24px !important;
+  padding-right: 16px !important;
+}
+
+.col-md-3.col-lg-2 .panel-heading {
+  font-size: 18px !important;
+  font-weight: 700;
+  padding: 12px 14px !important;
+}
+
+.col-md-3.col-lg-2 .list-group-item {
+  font-size: 20px !important;
+  line-height: 1.3 !important;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 10px 12px !important;
+}
+
+/* Main content typography rhythm */
+.col-md-9.col-lg-10 h3 {
+  font-size: 32px !important;
+  line-height: 1.25 !important;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.col-md-9.col-lg-10 h4.panel-title {
+  font-size: 22px !important;
+}
+
+.panel-title-text {
+  font-size: inherit;
+}
+
+.panel-body .table > tbody > tr > th,
+.panel-body .table > tbody > tr > td {
+  font-size: 16px !important;
+  line-height: 1.4;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+.btn.btn-sm {
+  font-size: 16px !important;
+  line-height: 1.25;
+  padding: 6px 12px !important;
+  border-radius: 8px;
+}
+
+.navbar .btn.navbar-btn.btn-sm {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 991px) {
+  :root {
+    --ark-sidebar-w: 100%;
+  }
+
+  .col-md-3.col-lg-2 .list-group-item {
+    font-size: 18px !important;
+  }
+
+  .col-md-9.col-lg-10 h3 {
+    font-size: 26px !important;
+  }
+}
+
+/* Final fix: keep system popup colors + remove forced page scrolling */
+
+/* 1) Restore system/default coloring for popup/dropdown content */
+.modal-content,
+.modal-header,
+.modal-body,
+.modal-footer,
+.dropdown-menu,
+.dropdown-menu > li > a,
+.navbar-nav .open .dropdown-menu,
+.popover,
+.tooltip-inner {
+  background-color: initial !important;
+  color: initial !important;
+  border-color: initial !important;
+  box-shadow: initial !important;
+}
+
+/* Keep hover behavior natural in system popups */
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus {
+  background-color: #f5f5f5 !important;
+  color: #262626 !important;
+}
+
+/* 2) Remove forced viewport heights that created empty vertical scroll */
+.container.content {
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.col-md-3.col-lg-2 .panel.panel-default {
+  min-height: 0 !important;
+}
+
+/* Let page scroll only when content truly exceeds viewport */
+html, body {
+  height: auto !important;
+  overflow-y: auto !important;
+}
+
+/* Sidebar bottom user menu */
+.sidebar-user-menu {
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid #2b4468;
+  background: #162741;
+}
+
+.sidebar-user-menu > a {
+  display: block;
+  text-decoration: none;
+  color: #d7e7ff;
+  background: #223754;
+  border: 1px solid #35527a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.sidebar-user-menu > a:hover,
+.sidebar-user-menu > a:focus {
+  background: #2b4669;
+  color: #ffffff;
+}
+
+.sidebar-user-menu .dropdown-menu {
+  left: 12px;
+  right: 12px;
+  min-width: auto;
+}
+
+/* Personal center dropdown: open upward, aligned, opaque */
+.sidebar-user-menu {
+  position: relative;
+}
+
+.sidebar-user-menu .dropdown-menu {
+  top: auto !important;
+  bottom: calc(100% + 8px) !important;
+  left: 12px !important;
+  right: 12px !important;
+  min-width: auto !important;
+  margin: 0 !important;
+  background: #1c2f4a !important;
+  border: 1px solid #35527a !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+  opacity: 1 !important;
+  z-index: 1200;
+}
+
+.sidebar-user-menu .dropdown-menu > li > a {
+  background: transparent !important;
+  color: #e7f1ff !important;
+}
+
+.sidebar-user-menu .dropdown-menu > li > a:hover,
+.sidebar-user-menu .dropdown-menu > li > a:focus {
+  background: #284264 !important;
+  color: #ffffff !important;
+}
+
+.sidebar-user-menu .dropdown-menu .divider {
+  background-color: #35527a !important;
+}
+
+/* Personal center internal language/help dropdown visibility */
+.sidebar-user-menu .dropdown-header {
+  color: #9fb8dc !important;
+  background: transparent !important;
+}
+
+.sidebar-user-menu li[language-select] > a,
+.sidebar-user-menu li[language-select] > a:hover,
+.sidebar-user-menu li[language-select] > a:focus {
+  color: #e7f1ff !important;
+  background: transparent !important;
+}
+
+.sidebar-user-menu li[language-select] > .dropdown-menu {
+  top: auto !important;
+  bottom: calc(100% + 6px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  background: #1c2f4a !important;
+  border: 1px solid #35527a !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+  opacity: 1 !important;
+}
+
+.sidebar-user-menu li[language-select] > .dropdown-menu > li > a {
+  color: #e7f1ff !important;
+  background: transparent !important;
+}
+
+.sidebar-user-menu li[language-select] > .dropdown-menu > li > a:hover,
+.sidebar-user-menu li[language-select] > .dropdown-menu > li > a:focus {
+  background: #284264 !important;
+  color: #ffffff !important;
+}
+
+/* Global popup hardening: force opaque backgrounds for all overlays */
+.modal,
+.modal-dialog,
+.modal-content,
+.modal-header,
+.modal-body,
+.modal-footer,
+.dropdown-menu,
+.navbar-nav .open .dropdown-menu,
+li[language-select] > .dropdown-menu,
+.sidebar-user-menu .dropdown-menu,
+.popover,
+.popover-title,
+.popover-content,
+.tooltip-inner,
+.daterangepicker,
+.daterangepicker .ranges,
+.daterangepicker .calendar-table,
+.daterangepicker .drp-buttons {
+  background-color: #1b2f4a !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  color: #e7f1ff !important;
+}
+
+.modal-content,
+.dropdown-menu,
+.popover,
+.daterangepicker {
+  border: 1px solid #35527a !important;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dropdown-menu > li > a,
+.navbar-nav .open .dropdown-menu > li > a,
+.sidebar-user-menu .dropdown-menu > li > a,
+li[language-select] > .dropdown-menu > li > a {
+  background: transparent !important;
+  color: #e7f1ff !important;
+}
+
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus,
+.navbar-nav .open .dropdown-menu > li > a:hover,
+.navbar-nav .open .dropdown-menu > li > a:focus,
+.sidebar-user-menu .dropdown-menu > li > a:hover,
+.sidebar-user-menu .dropdown-menu > li > a:focus,
+li[language-select] > .dropdown-menu > li > a:hover,
+li[language-select] > .dropdown-menu > li > a:focus {
+  background: #284264 !important;
+  color: #ffffff !important;
+}
+
+.dropdown-menu .divider,
+.sidebar-user-menu .dropdown-menu .divider {
+  background-color: #35527a !important;
+}
+
+/* Keep backdrop visible but not transparent-through dialog */
+.modal-backdrop {
+  background-color: #02070f !important;
+  opacity: 0.55 !important;
+}
+
+/* Fix: do not paint modal container/dialog; only style modal content */
+.modal,
+.modal-dialog {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.modal-content,
+.modal-header,
+.modal-body,
+.modal-footer {
+  background-color: #1b2f4a !important;
+  color: #e7f1ff !important;
+  border-color: #35527a !important;
+}
+
+/* Sidebar second-level submenu (Help/Language) */
+.sidebar-user-menu .sidebar-submenu {
+  position: relative;
+}
+
+.sidebar-user-menu .sidebar-submenu > a {
+  display: block;
+  color: #e7f1ff !important;
+  background: transparent !important;
+}
+
+.sidebar-user-menu .sidebar-submenu > a:after {
+  content: "\203A";
+  float: right;
+  opacity: .8;
+}
+
+.sidebar-user-menu .sidebar-submenu > .dropdown-menu {
+  top: 0 !important;
+  left: 100% !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin-left: 6px !important;
+  min-width: 260px !important;
+  background: #1c2f4a !important;
+  border: 1px solid #35527a !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+  display: none;
+  opacity: 1 !important;
+}
+
+.sidebar-user-menu .sidebar-submenu:hover > .dropdown-menu,
+.sidebar-user-menu .sidebar-submenu.open > .dropdown-menu {
+  display: block;
+}
+
+/* language-select directive emits hidden-xs span; reveal in sidebar */
+.sidebar-user-menu li[language-select] .hidden-xs {
+  display: inline !important;
+}
+
+/* cancel previous upward override for language submenu inside sidebar */
+.sidebar-user-menu li[language-select] > .dropdown-menu {
+  top: 0 !important;
+  bottom: auto !important;
+  left: 100% !important;
+  right: auto !important;
+  width: auto !important;
+  margin-left: 6px !important;
+}
+
+/* Ensure ng-show based sidebar submenus are clickable and on top */
+.sidebar-user-menu .sidebar-submenu > .dropdown-menu[ng-show],
+.sidebar-user-menu li[language-select] > .dropdown-menu[ng-show] {
+  z-index: 1300;
+}
+
+/* Danger notification panels in red theme */
+.panel.panel-danger {
+  border-color: #7a1f2a !important;
+  background-color: #2a0f16 !important;
+}
+
+.panel-danger > .panel-heading,
+.panel.panel-danger .panel-heading {
+  background-color: #6e1b27 !important;
+  border-color: #7a1f2a !important;
+  color: #ffe8ec !important;
+}
+
+.panel.panel-danger .panel-body {
+  background-color: #2a0f16 !important;
+  color: #ffd5dc !important;
+}
+
+.panel.panel-danger .panel-footer {
+  background-color: #2a0f16 !important;
+  border-color: #7a1f2a !important;
+}
+
+.panel.panel-danger a,
+.panel.panel-danger strong,
+.panel.panel-danger b {
+  color: #ffb9c4 !important;
 }
