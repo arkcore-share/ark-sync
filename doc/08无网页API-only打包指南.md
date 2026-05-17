@@ -32,15 +32,15 @@
 ### 3.1 使用仓库构建脚本（推荐）
 
 ```bash
-go run build.go -tags "noassets" build syncthing
+go run build.go -tags "noassets" -build-out ./bin/arksync build syncthing
 ```
 
-产物在 `bin/` 目录（当前仓库目标二进制名为 `arksync`）。
+产物为 `./bin/arksync`。
 
 ### 3.2 直接 Go 构建
 
 ```bash
-go build -tags noassets -o arksync ./cmd/syncthing
+go build -tags noassets -o ./bin/arksync ./cmd/syncthing
 ```
 
 ---
