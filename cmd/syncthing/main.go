@@ -41,7 +41,6 @@ import (
 	"github.com/syncthing/syncthing/cmd/syncthing/generate"
 	"github.com/syncthing/syncthing/internal/db"
 	"github.com/syncthing/syncthing/internal/db/sqlite"
-	"github.com/syncthing/syncthing/internal/parentcheck"
 	"github.com/syncthing/syncthing/internal/slogutil"
 	"github.com/syncthing/syncthing/lib/build"
 	"github.com/syncthing/syncthing/lib/config"
@@ -211,8 +210,6 @@ func defaultVars() kong.Vars {
 }
 
 func main() {
-	parentcheck.ExitIfWrongParent()
-
 	// Create a parser with an overridden help function to print our extra
 	// help info.
 	var entrypoint CLI
