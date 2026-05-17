@@ -109,6 +109,7 @@ var (
 	upgradeCheckKey      = "lastUpgradeCheck"
 	upgradeTimeKey       = "lastUpgradeTime"
 	upgradeVersionKey    = "lastUpgradeVersion"
+	disableAutoUpgrade   = true
 
 	errTooEarlyUpgradeCheck = fmt.Errorf("last upgrade check happened less than %v ago, skipping", upgradeCheckInterval)
 	errTooEarlyUpgrade      = fmt.Errorf("last upgrade happened less than %v ago, skipping", upgradeRetryInterval)
@@ -480,7 +481,7 @@ func (c *serveCmd) syncthingMain() {
 	// unless we are in a build where it's disabled or the STNOUPGRADE
 	// environment variable is set.
 
-	if build.IsCandidate && !upgrade.DisabledByCompilation && !c.NoUpgrade {
+	if !disableAutoUpgrade && build.IsCandidate && !upgrade.DisabledByCompilation && !c.NoUpgrade {
 		cfgWrapper.Modify(func(cfg *config.Configuration) {
 			slog.Info("Automatic upgrade is always enabled for candidate releases")
 			if cfg.Options.AutoUpgradeIntervalH == 0 || cfg.Options.AutoUpgradeIntervalH > 24 {
@@ -690,6 +691,10 @@ func auditWriter(auditFile string) io.Writer {
 }
 
 func (c *serveCmd) autoUpgradePossible() bool {
+	if disableAutoUpgrade {
+		slog.Info("No automatic upgrades; disabled by source code policy")
+		return false
+	}
 	if upgrade.DisabledByCompilation {
 		return false
 	}
@@ -888,49 +893,10 @@ type upgradeCmd struct {
 }
 
 func (u upgradeCmd) Run() error {
-	if u.CheckOnly {
-		if _, err := checkUpgrade(); err != nil {
-			slog.Error("Failed to check for upgrade", slogutil.Error(err))
-			os.Exit(exitCodeForUpgrade(err))
-		}
-		return nil
-	}
-
-	if u.From != "" {
-		err := upgrade.ToURL(u.From)
-		if err != nil {
-			slog.Error("Failed to upgrade", slogutil.Error(err))
-			os.Exit(svcutil.ExitError.AsInt())
-		}
-		slog.Info("Upgraded", "from", u.From)
-		return nil
-	}
-
-	release, err := checkUpgrade()
-	if err == nil {
-		lf := flock.New(locations.Get(locations.LockFile))
-		var locked bool
-		locked, err = lf.TryLock()
-		// ErrNotExist is a valid error if this is a new/blank installation
-		// without a config dir, in which case we can proceed with a normal
-		// non-API upgrade.
-		switch {
-		case err != nil && !os.IsNotExist(err):
-			slog.Error("Failed to lock for upgrade", slogutil.Error(err))
-			os.Exit(1)
-		case locked:
-			err = upgradeViaRest()
-		default:
-			err = upgrade.To(release)
-		}
-	}
-	if err != nil {
-		slog.Error("Failed to check for upgrade", slogutil.Error(err))
-		os.Exit(exitCodeForUpgrade(err))
-	}
-	slog.Info("Upgraded", "to", release.Tag)
-	os.Exit(svcutil.ExitUpgrade.AsInt())
-	return nil
+	_ = u
+	slog.Error("Manual upgrade is disabled by source code policy")
+	os.Exit(svcutil.ExitError.AsInt())
+	return errors.New("manual upgrade disabled")
 }
 
 type browserCmd struct{}

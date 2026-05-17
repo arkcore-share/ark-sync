@@ -1401,23 +1401,8 @@ func (s *service) getEventSub(mask events.EventType) events.BufferedSubscription
 }
 
 func (s *service) getSystemUpgrade(w http.ResponseWriter, _ *http.Request) {
-	if s.noUpgrade {
-		http.Error(w, upgrade.ErrUpgradeUnsupported.Error(), http.StatusNotImplemented)
-		return
-	}
-	opts := s.cfg.Options()
-	rel, err := upgrade.LatestRelease(opts.ReleasesURL, build.Version, opts.UpgradeToPreReleases)
-	if err != nil {
-		httpError(w, err)
-		return
-	}
-	res := make(map[string]interface{})
-	res["running"] = build.Version
-	res["latest"] = rel.Tag
-	res["newer"] = upgrade.CompareVersions(rel.Tag, build.Version) == upgrade.Newer
-	res["majorNewer"] = upgrade.CompareVersions(rel.Tag, build.Version) == upgrade.MajorNewer
-
-	sendJSON(w, res)
+	_ = s
+	http.Error(w, upgrade.ErrUpgradeUnsupported.Error(), http.StatusNotImplemented)
 }
 
 func (*service) getDeviceID(w http.ResponseWriter, r *http.Request) {
@@ -1469,27 +1454,8 @@ func (*service) getLang(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) postSystemUpgrade(w http.ResponseWriter, _ *http.Request) {
-	opts := s.cfg.Options()
-	rel, err := upgrade.LatestRelease(opts.ReleasesURL, build.Version, opts.UpgradeToPreReleases)
-	if err != nil {
-		httpError(w, err)
-		return
-	}
-
-	if upgrade.CompareVersions(rel.Tag, build.Version) > upgrade.Equal {
-		err = upgrade.To(rel)
-		if err != nil {
-			slog.Error("Failed to upgrade", slogutil.Error(err))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		s.flushResponse(`{"ok": "restarting"}`, w)
-		s.fatal(&svcutil.FatalErr{
-			Err:    errors.New("exit after upgrade initiated by rest API"),
-			Status: svcutil.ExitUpgrade,
-		})
-	}
+	_ = s
+	http.Error(w, upgrade.ErrUpgradeUnsupported.Error(), http.StatusNotImplemented)
 }
 
 func (s *service) makeDevicePauseHandler(paused bool) http.HandlerFunc {

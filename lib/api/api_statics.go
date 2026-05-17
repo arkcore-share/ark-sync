@@ -63,6 +63,11 @@ func newStaticsServer(theme, assetDir string) *staticsServer {
 }
 
 func (s *staticsServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !staticAssetsEnabled() {
+		http.NotFound(w, r)
+		return
+	}
+
 	switch r.URL.Path {
 	case "/themes.json":
 		s.serveThemes(w)
