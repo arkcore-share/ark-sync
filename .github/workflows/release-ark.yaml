@@ -1,9 +1,10 @@
-# Build and publish ark-sync (arksync) binaries for Linux, Windows, and macOS.
-# Does not depend on syncthing org secrets or upstream release automation.
+# Build and publish ark-sync on branch noupgrade (arksync binary, no upgrade, API-only).
 #
-# Usage:
+# Trigger: push tag v*  OR  Actions → Run workflow (manual tag input)
+#
+# Example:
+#   git checkout noupgrade
 #   git tag v1.0.0 && git push origin v1.0.0
-# Or: Actions → Release ark-sync → Run workflow (optional tag input)
 
 name: Release ark-sync
 
@@ -14,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to build (e.g. v1.0.0). Required for manual runs."
+        description: "Release tag (e.g. v1.0.0)"
         required: true
         type: string
 
@@ -27,7 +28,6 @@ env:
   GOARM: "6"
   BUILD_USER: ark-sync-ci
   BUILD_HOST: github.actions
-  # API-only build per doc/08; drop "noassets" here if you need the Web GUI in releases.
   TAGS: "sqlite_omit_load_extension sqlite_dbstat noassets"
   TAGS_LINUX: "sqlite_omit_load_extension sqlite_dbstat netgo osusergo noassets"
 
@@ -49,6 +49,18 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
           check-latest: true
+
+      - name: Verify tag points at releasable commit
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "::error::This tag/commit has no go.mod. Create the tag on branch noupgrade after pushing the release workflow, e.g.:"
+            echo "  git checkout noupgrade && git pull && git tag -f v1.0.0 && git push -f origin v1.0.0"
+            exit 1
+          fi
+          if [ ! -f .github/workflows/release-ark.yaml ]; then
+            echo "::error::release-ark.yaml missing on this commit. Tag noupgrade tip, not an old syncthing-only commit."
+            exit 1
+          fi
 
       - name: Resolve version
         id: version
@@ -87,7 +99,7 @@ jobs:
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
 
       - name: Build tar.gz
-        run: go run build.go -tags "${{ env.TAGS_LINUX }}" -goos linux -goarch ${{ matrix.arch }} -cc "${{ matrix.cc }}" tar syncthing
+        run: go run build.go -no-upgrade -tags "${{ env.TAGS_LINUX }}" -goos linux -goarch ${{ matrix.arch }} -cc "${{ matrix.cc }}" tar syncthing
         env:
           CGO_ENABLED: "1"
           EXTRA_LDFLAGS: "-linkmode=external -extldflags=-static"
@@ -95,10 +107,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: arksync-linux-*.tar.gz
+          path: arksync-linux-*-noupgrade.tar.gz
 
   package-windows:
-    name: Windows
+    name: Windows (${{ matrix.arch }})
     needs: facts
     runs-on: ubuntu-latest
     strategy:
@@ -129,14 +141,14 @@ jobs:
         run: go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.0
 
       - name: Build zip
-        run: go run build.go -tags "${{ env.TAGS }}" -goos windows -goarch ${{ matrix.arch }} -cc "zig cc -target ${{ matrix.zig }}" zip syncthing
+        run: go run build.go -no-upgrade -tags "${{ env.TAGS }}" -goos windows -goarch ${{ matrix.arch }} -cc "zig cc -target ${{ matrix.zig }}" zip syncthing
         env:
           CGO_ENABLED: "1"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
-          path: arksync-windows-*.zip
+          path: arksync-windows-*-noupgrade.zip
 
   package-macos:
     name: macOS
@@ -154,7 +166,7 @@ jobs:
           cache: true
 
       - name: Build amd64
-        run: go run build.go -tags "${{ env.TAGS }}" -goarch amd64 zip syncthing
+        run: go run build.go -no-upgrade -tags "${{ env.TAGS }}" -goarch amd64 zip syncthing
         env:
           CGO_ENABLED: "1"
 
@@ -168,18 +180,18 @@ jobs:
             go "$@"
           EOT
           chmod 755 xgo.sh
-          go run build.go -tags "${{ env.TAGS }}" -gocmd ./xgo.sh -goarch arm64 zip syncthing
+          go run build.go -no-upgrade -tags "${{ env.TAGS }}" -gocmd ./xgo.sh -goarch arm64 zip syncthing
         env:
           CGO_ENABLED: "1"
 
       - name: Build universal zip
         run: |
           rm -rf _tmp && mkdir _tmp && cd _tmp
-          unzip -q ../arksync-macos-amd64-*.zip
-          unzip -q ../arksync-macos-arm64-*.zip
-          lipo -create arksync-macos-amd64-*/arksync arksync-macos-arm64-*/arksync -output arksync
-          universal=$(echo arksync-macos-amd64-* | sed 's/amd64/universal/')
-          mv arksync-macos-amd64-* "$universal"
+          unzip -q ../arksync-macos-amd64-*-noupgrade.zip
+          unzip -q ../arksync-macos-arm64-*-noupgrade.zip
+          lipo -create arksync-macos-amd64-*-noupgrade/arksync arksync-macos-arm64-*-noupgrade/arksync -output arksync
+          universal=$(echo arksync-macos-amd64-*-noupgrade | sed 's/amd64/universal/')
+          mv arksync-macos-amd64-*-noupgrade "$universal"
           mv arksync "$universal/"
           zip -r "../${universal}.zip" "$universal"
           cd ..
@@ -187,8 +199,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: |
-            arksync-macos-*.zip
+          path: arksync-macos-*-noupgrade.zip
 
   publish:
     name: Publish GitHub Release
@@ -199,8 +210,7 @@ jobs:
       - package-macos
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v7
         with:
           path: packages
           merge-multiple: true
@@ -208,7 +218,7 @@ jobs:
       - name: Checksums
         run: |
           cd packages
-          sha256sum arksync-*.tar.gz arksync-*.zip > SHA256SUMS.txt
+          sha256sum arksync-* > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create or update release
@@ -222,6 +232,6 @@ jobs:
             prerelease="--prerelease"
           fi
           if ! gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release create "$VERSION" $prerelease --title "$VERSION" --generate-notes
+            gh release create "$VERSION" $prerelease --title "$VERSION (noupgrade)" --generate-notes
           fi
           gh release upload --clobber "$VERSION" packages/arksync-* packages/SHA256SUMS.txt
