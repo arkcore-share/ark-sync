@@ -166,7 +166,9 @@ jobs:
           cache: true
 
       - name: Build amd64
-        run: go run build.go -no-upgrade -tags "${{ env.TAGS }}" -goarch amd64 zip syncthing
+        run: |
+          go run build.go -no-upgrade -tags "${{ env.TAGS }}" -goarch amd64 zip syncthing
+          ls -la *-macos-amd64-*-noupgrade.zip
         env:
           CGO_ENABLED: "1"
 
@@ -181,18 +183,17 @@ jobs:
           EOT
           chmod 755 xgo.sh
           go run build.go -no-upgrade -tags "${{ env.TAGS }}" -gocmd ./xgo.sh -goarch arm64 zip syncthing
+          ls -la *-macos-arm64-*-noupgrade.zip
         env:
           CGO_ENABLED: "1"
 
       - name: Build universal zip
         run: |
           set -euo pipefail
-          ls -la ../*.zip
-          amd64_zip=$(ls ../*-macos-amd64-*-noupgrade.zip)
-          arm64_zip=$(ls ../*-macos-arm64-*-noupgrade.zip)
+          ls -la *-macos-*-noupgrade.zip
           rm -rf _tmp && mkdir _tmp && cd _tmp
-          unzip -q "$amd64_zip"
-          unzip -q "$arm64_zip"
+          unzip -q ../*-macos-amd64-*-noupgrade.zip
+          unzip -q ../*-macos-arm64-*-noupgrade.zip
           amd64_dir=$(echo *-macos-amd64-*-noupgrade)
           arm64_dir=$(echo *-macos-arm64-*-noupgrade)
           lipo -create "$amd64_dir/arksync" "$arm64_dir/arksync" -output arksync
@@ -201,6 +202,7 @@ jobs:
           mv arksync "$universal/"
           zip -r "../${universal}.zip" "$universal"
           cd ..
+          ls -la *-macos-universal-*-noupgrade.zip
 
       - uses: actions/upload-artifact@v4
         with:
