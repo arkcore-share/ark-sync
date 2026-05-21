@@ -186,12 +186,18 @@ jobs:
 
       - name: Build universal zip
         run: |
+          set -euo pipefail
+          ls -la ../*.zip
+          amd64_zip=$(ls ../*-macos-amd64-*-noupgrade.zip)
+          arm64_zip=$(ls ../*-macos-arm64-*-noupgrade.zip)
           rm -rf _tmp && mkdir _tmp && cd _tmp
-          unzip -q ../arksync-macos-amd64-*-noupgrade.zip
-          unzip -q ../arksync-macos-arm64-*-noupgrade.zip
-          lipo -create arksync-macos-amd64-*-noupgrade/arksync arksync-macos-arm64-*-noupgrade/arksync -output arksync
-          universal=$(echo arksync-macos-amd64-*-noupgrade | sed 's/amd64/universal/')
-          mv arksync-macos-amd64-*-noupgrade "$universal"
+          unzip -q "$amd64_zip"
+          unzip -q "$arm64_zip"
+          amd64_dir=$(echo *-macos-amd64-*-noupgrade)
+          arm64_dir=$(echo *-macos-arm64-*-noupgrade)
+          lipo -create "$amd64_dir/arksync" "$arm64_dir/arksync" -output arksync
+          universal="${amd64_dir/amd64/universal}"
+          mv "$amd64_dir" "$universal"
           mv arksync "$universal/"
           zip -r "../${universal}.zip" "$universal"
           cd ..

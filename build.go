@@ -587,7 +587,6 @@ func appendParameters(args []string, tags []string, pkgs ...string) []string {
 
 func buildTar(target target, tags []string) {
 	name := archiveName(target)
-	filename := name + ".tar.gz"
 
 	for _, tag := range tags {
 		if tag == "noupgrade" {
@@ -595,6 +594,7 @@ func buildTar(target target, tags []string) {
 			break
 		}
 	}
+	filename := name + ".tar.gz"
 
 	build(target, tags)
 	codesign(target)
@@ -611,7 +611,6 @@ func buildTar(target target, tags []string) {
 
 func buildZip(target target, tags []string) {
 	name := archiveName(target)
-	filename := name + ".zip"
 
 	for _, tag := range tags {
 		if tag == "noupgrade" {
@@ -619,6 +618,7 @@ func buildZip(target target, tags []string) {
 			break
 		}
 	}
+	filename := name + ".zip"
 
 	build(target, tags)
 	codesign(target)
