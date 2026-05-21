@@ -103,4 +103,40 @@ curl -s -H "X-API-Key: <API_KEY>" http://127.0.0.1:8384/rest/system/ping
 
 ---
 
+## 8. GitHub Actions 自动发布（Linux / Windows / macOS）
+
+仓库已提供 [`.github/workflows/release-ark.yaml`](../.github/workflows/release-ark.yaml)，在 GitHub 上编译 **API-only**（`noassets`）的 `arksync` 并上传到 Release。
+
+### 8.1 发布步骤
+
+1. 提交并推送你的修改到 `arkcore-share/ark-sync`。
+2. 打版本标签并推送（版本号来自 git tag，与 `go run build.go version` 一致）：
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+3. 打开 GitHub → **Actions** → **Release ark-sync**，确认 workflow 成功。
+4. 在 **Releases** 页面下载对应平台包，例如：
+   - `arksync-linux-amd64-v1.0.0.tar.gz`
+   - `arksync-windows-amd64-v1.0.0.zip`
+   - `arksync-macos-universal-v1.0.0.zip`（Intel + Apple Silicon）
+5. 使用 `SHA256SUMS.txt` 校验下载文件。
+
+也可在 Actions 里 **Run workflow**，填写已存在的 tag（如 `v1.0.0`）手动重跑发布。
+
+### 8.2 产物说明
+
+- 压缩包前缀为 `arksync-`，包内可执行文件为 `arksync` / `arksync.exe`。
+- 默认带 `noassets` 标签，与本文档第 3 节本地打包一致。
+- 若 Release 需要带 Web GUI，编辑 workflow 中 `TAGS` / `TAGS_LINUX`，去掉 `noassets` 后重新打 tag 发布。
+
+### 8.3 与官方 Syncthing Release 的区别
+
+- 不能使用 [syncthing/syncthing releases](https://github.com/syncthing/syncthing/releases)（未包含本仓库修改）。
+- 本 workflow 不依赖 Syncthing 组织的签名密钥；macOS/Windows 包为 **未公证/未签名** 版本，首次运行可能需系统安全提示放行。
+
+---
+
 如需“API-only Docker 镜像构建模板（含健康检查、最小权限、只读根文件系统）”，可在本仓库再补一份 `Dockerfile` 示例。
