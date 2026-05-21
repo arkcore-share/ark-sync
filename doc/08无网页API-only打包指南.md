@@ -97,4 +97,50 @@ curl -s -H "X-API-Key: <API_KEY>" http://127.0.0.1:8384/rest/system/ping
 
 ---
 
+## 8. 三平台构建（`noupgrade` 分支）
+
+### 8.1 本地（仅 Linux，WSL/本机）
+
+```bash
+cd ~/arkcore/ark-sync
+git checkout noupgrade
+git pull origin noupgrade
+
+# 单文件
+go run build.go -no-upgrade -tags "noassets" -build-out ./bin/arksync build syncthing
+
+# Linux 压缩包（amd64）
+go run build.go -no-upgrade -tags "sqlite_omit_load_extension sqlite_dbstat noassets" tar syncthing
+# 产物示例：arksync-linux-amd64-vX.Y.Z-noupgrade.tar.gz
+```
+
+Windows / macOS 交叉编译需 Zig 或 macOS 本机，**建议用 GitHub Actions**（见下）。
+
+### 8.2 GitHub 自动构建 Linux + Windows + macOS
+
+1. 提交并推送 workflow：`.github/workflows/release-ark.yaml`
+2. 在 **`noupgrade` 分支** 上打 tag 并推送：
+
+```bash
+git add .github/workflows/release-ark.yaml build.go doc/
+git commit -m "ci: release ark-sync for linux/windows/macos on noupgrade"
+git push origin noupgrade
+
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+3. GitHub → **Actions** → **Release ark-sync** → 成功后到 **Releases** 下载：
+
+| 平台 | 文件示例 |
+|------|----------|
+| Linux x64 | `arksync-linux-amd64-v1.0.0-noupgrade.tar.gz` |
+| Linux ARM64 | `arksync-linux-arm64-v1.0.0-noupgrade.tar.gz` |
+| Windows x64 | `arksync-windows-amd64-v1.0.0-noupgrade.zip` |
+| macOS 通用 | `arksync-macos-universal-v1.0.0-noupgrade.zip` |
+
+所有包内可执行文件为 **`arksync`** / **`arksync.exe`**，且带 **`noupgrade`**（禁用自动升级）。
+
+---
+
 如需“API-only Docker 镜像构建模板（含健康检查、最小权限、只读根文件系统）”，可在本仓库再补一份 `Dockerfile` 示例。

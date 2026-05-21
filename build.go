@@ -87,7 +87,7 @@ var targets = map[string]target{
 	},
 	"syncthing": {
 		// The default target for "build", "install", "tar", "zip", "deb", etc.
-		name:        "syncthing",
+		name:        "arksync",
 		debname:     "syncthing",
 		debdeps:     []string{"libc6", "procps"},
 		description: "Open Source Continuous File Synchronization",

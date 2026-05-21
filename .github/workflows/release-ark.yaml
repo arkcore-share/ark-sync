@@ -1,0 +1,225 @@
+# Build and publish ark-sync on branch noupgrade (arksync binary, no upgrade, API-only).
+#
+# Trigger: push tag v*  OR  Actions → Run workflow (manual tag input)
+#
+# Example:
+#   git checkout noupgrade
+#   git tag v1.0.0 && git push origin v1.0.0
+
+name: Release ark-sync
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: "~1.26.0"
+  GOMIPS: softfloat
+  GOARM: "6"
+  BUILD_USER: ark-sync-ci
+  BUILD_HOST: github.actions
+  TAGS: "sqlite_omit_load_extension sqlite_dbstat noassets"
+  TAGS_LINUX: "sqlite_omit_load_extension sqlite_dbstat netgo osusergo noassets"
+
+jobs:
+  facts:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      go-version: ${{ steps.go.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          check-latest: true
+
+      - name: Resolve version
+        id: version
+        run: |
+          version=$(go run build.go version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building version: $version"
+
+      - name: Go version
+        id: go
+        run: echo "go-version=$(go version | sed 's#^.*go##;s# .*##')" >> "$GITHUB_OUTPUT"
+
+  package-linux:
+    name: Linux (${{ matrix.arch }})
+    needs: facts
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            cc: zig cc -target x86_64-linux-musl
+          - arch: arm64
+            cc: zig cc -target aarch64-linux-musl
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ needs.facts.outputs.go-version }}
+          cache: true
+
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+
+      - name: Build tar.gz
+        run: go run build.go -no-upgrade -tags "${{ env.TAGS_LINUX }}" -goos linux -goarch ${{ matrix.arch }} -cc "${{ matrix.cc }}" tar syncthing
+        env:
+          CGO_ENABLED: "1"
+          EXTRA_LDFLAGS: "-linkmode=external -extldflags=-static"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: arksync-linux-*-noupgrade.tar.gz
+
+  package-windows:
+    name: Windows (${{ matrix.arch }})
+    needs: facts
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64, "386"]
+        include:
+          - arch: amd64
+            zig: x86_64-windows
+          - arch: arm64
+            zig: aarch64-windows
+          - arch: "386"
+            zig: x86-windows
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ needs.facts.outputs.go-version }}
+          cache: true
+
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+
+      - name: Install goversioninfo
+        run: go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.0
+
+      - name: Build zip
+        run: go run build.go -no-upgrade -tags "${{ env.TAGS }}" -goos windows -goarch ${{ matrix.arch }} -cc "zig cc -target ${{ matrix.zig }}" zip syncthing
+        env:
+          CGO_ENABLED: "1"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: arksync-windows-*-noupgrade.zip
+
+  package-macos:
+    name: macOS
+    needs: facts
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ needs.facts.outputs.go-version }}
+          cache: true
+
+      - name: Build amd64
+        run: go run build.go -no-upgrade -tags "${{ env.TAGS }}" -goarch amd64 zip syncthing
+        env:
+          CGO_ENABLED: "1"
+
+      - name: Build arm64
+        run: |
+          cat <<'EOT' > xgo.sh
+          #!/bin/bash
+          CGO_ENABLED=1 \
+            CGO_CFLAGS="-target arm64-apple-macos10.15" \
+            CGO_LDFLAGS="-target arm64-apple-macos10.15" \
+            go "$@"
+          EOT
+          chmod 755 xgo.sh
+          go run build.go -no-upgrade -tags "${{ env.TAGS }}" -gocmd ./xgo.sh -goarch arm64 zip syncthing
+        env:
+          CGO_ENABLED: "1"
+
+      - name: Build universal zip
+        run: |
+          rm -rf _tmp && mkdir _tmp && cd _tmp
+          unzip -q ../arksync-macos-amd64-*-noupgrade.zip
+          unzip -q ../arksync-macos-arm64-*-noupgrade.zip
+          lipo -create arksync-macos-amd64-*-noupgrade/arksync arksync-macos-arm64-*-noupgrade/arksync -output arksync
+          universal=$(echo arksync-macos-amd64-*-noupgrade | sed 's/amd64/universal/')
+          mv arksync-macos-amd64-*-noupgrade "$universal"
+          mv arksync "$universal/"
+          zip -r "../${universal}.zip" "$universal"
+          cd ..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: arksync-macos-*-noupgrade.zip
+
+  publish:
+    name: Publish GitHub Release
+    needs:
+      - facts
+      - package-linux
+      - package-windows
+      - package-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd packages
+          sha256sum arksync-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.facts.outputs.version }}
+        run: |
+          export GH_PROMPT_DISABLED=1
+          prerelease=""
+          if [[ "$VERSION" == *-* ]]; then
+            prerelease="--prerelease"
+          fi
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release create "$VERSION" $prerelease --title "$VERSION (noupgrade)" --generate-notes
+          fi
+          gh release upload --clobber "$VERSION" packages/arksync-* packages/SHA256SUMS.txt
