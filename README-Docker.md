@@ -1,48 +1,53 @@
-# Docker Container for Syncthing
+# Docker image for Ark Sync
 
-Use the Dockerfile in this repo, or pull the `syncthing/syncthing` image
-from Docker Hub.
+Build the image from this repository (recommended). The container layout follows the upstream Syncthing Docker image conventions; the sync binary is **`arksync`** when built from current `build.go`.
 
-Use the `/var/syncthing` volume to have the synchronized files available on the
-host. You can add more folders and map them as you prefer.
+## Build the image
 
-Note that Syncthing runs as UID 1000 and GID 1000 by default. These may be
-altered with the `PUID` and `PGID` environment variables. In addition
-the name of the Syncthing instance can be optionally defined by using
-`--hostname=syncthing` parameter.
-
-To grant Syncthing additional capabilities without running as root, use the
-`PCAP` environment variable with the same syntax as that for `setcap(8)`.
-For example, `PCAP=cap_chown,cap_fowner+ep`.
-
-To set a different umask value, use the `UMASK` environment variable. For
-example `UMASK=002`.
-
-## Example Usage
-
-**Docker cli**
-```
-$ docker pull syncthing/syncthing
-$ docker run --network=host  -e STGUIADDRESS= \
-    -v /wherever/st-sync:/var/syncthing \
-    syncthing/syncthing:latest
+```bash
+docker build -t ark-sync:local .
 ```
 
-**Docker compose**
-```yml
----
-version: "3"
+For multi-arch or release-aligned builds, use the same `go run build.go` flow as in [doc/08无网页API-only打包指南.md](doc/08无网页API-only打包指南.md) and [.github/workflows/release-ark.yaml](.github/workflows/release-ark.yaml), then adjust the Dockerfile copy step if your artifact is named `arksync-linux-*` instead of `syncthing-linux-*`.
+
+## Volumes and user
+
+Use the `/var/syncthing` volume for synchronized data and configuration (path name kept for compatibility with the upstream image layout).
+
+Ark Sync runs as **UID 1000** and **GID 1000** by default. Override with `PUID` and `PGID`. Set the container hostname with `--hostname=arksync` if needed.
+
+Optional environment variables (same as upstream image):
+
+- **`PCAP`** — extra capabilities without root, e.g. `PCAP=cap_chown,cap_fowner+ep`
+- **`UMASK`** — e.g. `UMASK=002`
+- **`STGUIADDRESS`** — GUI/API listen address; API-only deployments often use `STGUIADDRESS=` or restrict to localhost in config
+
+## Example usage
+
+**Docker CLI**
+
+```bash
+docker build -t ark-sync:local .
+docker run --network=host -e STGUIADDRESS= \
+  -v /path/to/data:/var/syncthing \
+  ark-sync:local
+```
+
+**Docker Compose**
+
+```yaml
 services:
-  syncthing:
-    image: syncthing/syncthing
-    container_name: syncthing
-    hostname: my-syncthing
+  arksync:
+    image: ark-sync:local
+    build: .
+    container_name: arksync
+    hostname: my-ark-sync
     environment:
       - PUID=1000
       - PGID=1000
       - STGUIADDRESS=
     volumes:
-      - /wherever/st-sync:/var/syncthing
+      - /path/to/data:/var/syncthing
     network_mode: host
     restart: unless-stopped
     healthcheck:
@@ -52,27 +57,22 @@ services:
       retries: 3
 ```
 
-## Discovery
+## Discovery and networking
 
-Please note that Docker's default network mode prevents local IP addresses
-from being discovered, as Syncthing can only see the internal IP address of
-the container on the `172.17.0.0/16` subnet. This would likely break the ability
-for nodes to establish LAN connections properly, resulting in poor transfer
-rates unless local device addresses are configured manually.
+Docker’s default bridge network hides real LAN addresses; Ark Sync inside the container may only see `172.17.0.0/16`, which hurts local discovery and transfer speed.
 
-It is therefore strongly recommended to stick to the [host network mode](https://docs.docker.com/network/host/),
-as shown above.
+**Use [host network mode](https://docs.docker.com/network/host/)** when possible (as above).
 
-Be aware that syncthing alone is now in control of what interfaces and ports it
-listens on. You can edit the syncthing configuration to change the defaults if
-there are conflicts.
+Ark Sync controls which interfaces and ports it listens on; adjust configuration if there are conflicts.
 
-## GUI Security
+## API / GUI security
 
-By default Syncthing inside the Docker image listens on `0.0.0.0:8384`. This
-allows GUI connections when running without host network mode. The example
-above unsets the `STGUIADDRESS` environment variable to have Syncthing fall
-back to listening on what has been configured in the configuration file or the
-GUI settings dialog. By default this is the localhost IP address `127.0.0.1`.
-If you configure your GUI to be externally reachable, make sure you set up
-authentication and enable TLS.
+By default the image may listen on `0.0.0.0:8384`. The example clears `STGUIADDRESS` so the process uses the config file or GUI settings (often `127.0.0.1`).
+
+If you expose the API externally:
+
+- Enable authentication (API key).
+- Enable TLS.
+- Prefer probing **`/rest/noauth/health`** for health checks (see [doc/08无网页API-only打包指南.md](doc/08无网页API-only打包指南.md)).
+
+This fork often ships **without bundled Web GUI assets** (`noassets`); plan on REST API or an external client.
