@@ -50,6 +50,18 @@ jobs:
           cache: false
           check-latest: true
 
+      - name: Verify tag points at releasable commit
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "::error::This tag/commit has no go.mod. Create the tag on branch noupgrade after pushing the release workflow, e.g.:"
+            echo "  git checkout noupgrade && git pull && git tag -f v1.0.0 && git push -f origin v1.0.0"
+            exit 1
+          fi
+          if [ ! -f .github/workflows/release-ark.yaml ]; then
+            echo "::error::release-ark.yaml missing on this commit. Tag noupgrade tip, not an old syncthing-only commit."
+            exit 1
+          fi
+
       - name: Resolve version
         id: version
         run: |
