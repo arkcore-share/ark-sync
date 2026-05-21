@@ -218,6 +218,11 @@ jobs:
       - package-macos
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+
       - uses: actions/download-artifact@v7
         with:
           path: packages
@@ -232,8 +237,10 @@ jobs:
       - name: Create or update release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           VERSION: ${{ needs.facts.outputs.version }}
         run: |
+          set -euo pipefail
           export GH_PROMPT_DISABLED=1
           prerelease=""
           if [[ "$VERSION" == *-* ]]; then
