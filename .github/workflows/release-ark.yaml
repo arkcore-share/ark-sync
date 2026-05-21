@@ -65,9 +65,17 @@ jobs:
       - name: Resolve version
         id: version
         run: |
-          version=$(go run build.go version)
+          # Use the release tag name (e.g. v1.0.0), not `git describe`.
+          # This repo inherits hundreds of upstream Syncthing tags; describe
+          # would yield confusing hashes like 81536c17 in every filename.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.tag }}"
+          else
+            version="${{ github.ref_name }}"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Building version: $version"
+          echo "Release version (tag): $version"
+          echo "build.go version (info only): $(VERSION=$version go run build.go version 2>/dev/null || go run build.go version)"
 
       - name: Go version
         id: go
@@ -77,6 +85,8 @@ jobs:
     name: Linux (${{ matrix.arch }})
     needs: facts
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.facts.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -113,6 +123,8 @@ jobs:
     name: Windows (${{ matrix.arch }})
     needs: facts
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.facts.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -154,6 +166,8 @@ jobs:
     name: macOS
     needs: facts
     runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.facts.outputs.version }}
     steps:
       - uses: actions/checkout@v5
         with:
