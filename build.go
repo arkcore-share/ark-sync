@@ -1016,6 +1016,11 @@ func getVersion() string {
 	}
 	// ... then see if we have a Git tag.
 	if ver, err := getGitVersion(); err == nil {
+		if !strings.HasPrefix(ver, "v") {
+			// No valid version tag reachable (bare commit hash from
+			// git describe --always). Treat as dev build.
+			return "unknown-dev"
+		}
 		if strings.Contains(ver, "-") {
 			// The version already contains a hash and stuff. See if we can
 			// find a current branch name to tack onto it as well.
